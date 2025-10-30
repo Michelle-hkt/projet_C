@@ -1,0 +1,14 @@
+
+> immo_back@1.0.0 start
+> node src/server.js
+
+Base de données connectée avec succès
+Base de données : babomon
+Vérification des rôles dans la base de données...
+   ✓ Le rôle "customer" existe déjà
+   ✓ Le rôle "agent" existe déjà
+   ✓ Le rôle "admin" existe déjà
+Initialisation des rôles terminée avec succès
+
+Serveur démarré sur le port 3000
+URL : http://localhost:3000/api/v1
