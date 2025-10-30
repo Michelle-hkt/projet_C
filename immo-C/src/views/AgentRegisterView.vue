@@ -16,6 +16,8 @@ const profileImage = ref('')
 const profileImageName = ref('')
 const cipImage = ref('')
 const cipImageName = ref('')
+const profileImagePreview = ref('')
+const cipImagePreview = ref('')
 const acceptTerms = ref(false)
 const errorMessage = ref('')
 const showToast = ref(false)
@@ -25,26 +27,56 @@ const showPassword = ref(false)
 // Fonction pour convertir l'image en base64
 const handleProfileImageUpload = (event) => {
   const file = event.target.files[0]
-  if (file) {
-    profileImageName.value = file.name
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      profileImage.value = e.target.result
-    }
-    reader.readAsDataURL(file)
+  if (!file) return
+
+  // Vérifier le type de fichier
+  if (!file.type.startsWith('image/')) {
+    errorMessage.value = 'Veuillez sélectionner une image valide'
+    setTimeout(() => errorMessage.value = '', 3000)
+    return
   }
+
+  // Vérifier la taille (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    errorMessage.value = 'L\'image ne doit pas dépasser 5 MB'
+    setTimeout(() => errorMessage.value = '', 3000)
+    return
+  }
+
+  profileImageName.value = file.name
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    profileImage.value = e.target.result
+    profileImagePreview.value = e.target.result
+  }
+  reader.readAsDataURL(file)
 }
 
 const handleCipImageUpload = (event) => {
   const file = event.target.files[0]
-  if (file) {
-    cipImageName.value = file.name
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      cipImage.value = e.target.result
-    }
-    reader.readAsDataURL(file)
+  if (!file) return
+
+  // Vérifier le type de fichier
+  if (!file.type.startsWith('image/')) {
+    errorMessage.value = 'Veuillez sélectionner une image valide'
+    setTimeout(() => errorMessage.value = '', 3000)
+    return
   }
+
+  // Vérifier la taille (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    errorMessage.value = 'L\'image ne doit pas dépasser 5 MB'
+    setTimeout(() => errorMessage.value = '', 3000)
+    return
+  }
+
+  cipImageName.value = file.name
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    cipImage.value = e.target.result
+    cipImagePreview.value = e.target.result
+  }
+  reader.readAsDataURL(file)
 }
 
 const handleRegister = async () => {
@@ -83,6 +115,8 @@ const handleRegister = async () => {
       profileImageName.value = ''
       cipImage.value = ''
       cipImageName.value = ''
+      profileImagePreview.value = ''
+      cipImagePreview.value = ''
       acceptTerms.value = false
       
       // Afficher la notification toast en haut à droite
@@ -201,8 +235,20 @@ const handleRegister = async () => {
                 class="file_input"
               />
               <label for="profileImage" class="file_label">
-                <span>{{ profileImageName || 'Choisir une photo de profil' }}</span>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span v-if="!profileImageName">Choisir une photo de profil</span>
+                <span v-else>{{ profileImageName }}</span>
               </label>
+              <div v-if="profileImagePreview" class="image_preview">
+                <img :src="profileImagePreview" alt="Prévisualisation" />
+                <button 
+                  type="button" 
+                  @click="profileImagePreview = ''; profileImage = ''; profileImageName = ''" 
+                  class="btn_remove_preview"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
             <small class="form_hint">Formats acceptés: JPG, PNG, JPEG (Max 5MB)</small>
           </div>
@@ -220,8 +266,20 @@ const handleRegister = async () => {
                 class="file_input"
               />
               <label for="cipImage" class="file_label">
-                <span>{{ cipImageName || 'Choisir votre certificat CIP' }}</span>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span v-if="!cipImageName">Choisir votre certificat CIP</span>
+                <span v-else>{{ cipImageName }}</span>
               </label>
+              <div v-if="cipImagePreview" class="image_preview">
+                <img :src="cipImagePreview" alt="Prévisualisation" />
+                <button 
+                  type="button" 
+                  @click="cipImagePreview = ''; cipImage = ''; cipImageName = ''" 
+                  class="btn_remove_preview"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
             <small class="form_hint">Votre certificat d'identité personnelle</small>
           </div>
@@ -409,6 +467,9 @@ const handleRegister = async () => {
 /* File upload styles */
 .file_upload_container {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .file_input {
@@ -419,19 +480,26 @@ const handleRegister = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   padding: 12px 15px;
-  border: 2px dashed #ccc;
+  border: 2px dashed #274abb;
   border-radius: 8px;
   background-color: #f9f9f9;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: #666;
+  color: #274abb;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .file_label:hover {
-  border-color: #274abb;
+  border-color: #1d3a8f;
   background-color: #f0f4ff;
+  color: #1d3a8f;
+}
+
+.file_label i {
+  font-size: 18px;
   color: #274abb;
 }
 
@@ -439,6 +507,48 @@ const handleRegister = async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.image_preview {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #eee;
+}
+
+.image_preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.btn_remove_preview {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background: rgba(220, 53, 69, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.btn_remove_preview:hover {
+  background: #dc3545;
+  transform: scale(1.1);
+}
+
+.btn_remove_preview i {
+  color: #fff;
+  font-size: 14px;
 }
 
 .remember_me {

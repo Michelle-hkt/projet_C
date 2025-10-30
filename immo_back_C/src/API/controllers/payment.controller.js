@@ -20,7 +20,6 @@ const payForVirtualVisit = (req, res) => {
   const userId = req.auth.userId;
   const userRole = req.auth.role;
 
-  // Admin accède gratuitement
   if (userRole === "admin") {
     return Announcement.findById(announcementId)
       .then((announcement) => {
@@ -46,15 +45,12 @@ const payForVirtualVisit = (req, res) => {
       .catch((error) => res.status(500).json(error));
   }
 
-  // Étape 1 : Récupérer l'annonce
   Announcement.findById(announcementId)
     .then((announcement) => {
-      // Vérifier que l'annonce existe
       if (!announcement) {
         return res.status(404).json({ message: "Annonce introuvable" });
       }
 
-      // Étape 2 : Vérifier d'abord si la visite virtuelle existe
       if (
         !announcement.virtualTour?.visitUrl ||
         announcement.virtualTour.visitUrl === "N/A"
@@ -64,10 +60,7 @@ const payForVirtualVisit = (req, res) => {
         });
       }
 
-      // Étape 3 : Vérifier si l'utilisateur est le créateur de l'annonce
-      // Si c'est son annonce, il accède gratuitement
       if (announcement.user.toString() === userId.toString()) {
-        // Accès gratuit pour le propriétaire
         return res.status(200).json({
           message: "Accès gratuit à votre visite virtuelle",
           visitUrl: announcement.virtualTour.visitUrl,
@@ -87,7 +80,6 @@ const payForVirtualVisit = (req, res) => {
                 return res.status(404).json({ message: "Wallet introuvable" });
               }
 
-              // Vérifier le solde
               if (wallet.balance < VIRTUAL_VISIT_PRICE) {
                 return res.status(400).json({
                   message:
@@ -97,12 +89,10 @@ const payForVirtualVisit = (req, res) => {
                 });
               }
 
-              // Débiter le wallet
               wallet.balance -= VIRTUAL_VISIT_PRICE;
               wallet
                 .save()
                 .then(() => {
-                  // Créer la transaction dans l'historique
                   const transaction = new WalletTransaction({
                     wallet: wallet._id,
                     serviceType: "Faire la Visite virtuelle",
@@ -114,7 +104,6 @@ const payForVirtualVisit = (req, res) => {
                   transaction
                     .save()
                     .then(async () => {
-                      // Distribuer les commissions pour la visite virtuelle
                       try {
                         await distributeVirtualVisitCommission(customer);
                       } catch (commissionError) {
@@ -122,10 +111,8 @@ const payForVirtualVisit = (req, res) => {
                           "Erreur distribution commission visite virtuelle:",
                           commissionError
                         );
-                        // On continue même si la commission échoue
                       }
 
-                      // Retourner l'URL de la visite virtuelle
                       res.status(200).json({
                         message: "Paiement effectué avec succès",
                         visitUrl: announcement.virtualTour.visitUrl,
@@ -148,7 +135,6 @@ const payForOnSiteVisit = (req, res) => {
   const userId = req.auth.userId;
   const userRole = req.auth.role;
 
-  // Admin : création de visite gratuite
   if (userRole === "admin") {
     return Announcement.findById(announcementId)
       .then((announcement) => {
@@ -156,7 +142,6 @@ const payForOnSiteVisit = (req, res) => {
           return res.status(404).json({ message: "Annonce introuvable" });
         }
 
-        // Créer la demande de visite sans paiement
         const visit = new Visit({
           userId: userId,
           announcementId: announcementId,
@@ -167,7 +152,6 @@ const payForOnSiteVisit = (req, res) => {
         return visit
           .save()
           .then((savedVisit) => {
-            // Récupérer UNIQUEMENT les agents assignés à cette annonce
             const assignedAgentIds = announcement.assignedAgents || [];
 
             if (assignedAgentIds.length === 0) {
@@ -181,7 +165,6 @@ const payForOnSiteVisit = (req, res) => {
             return Agent.find({ _id: { $in: assignedAgentIds } })
               .populate("userId")
               .then((agents) => {
-                // Envoyer une notification uniquement aux agents assignés
                 agents.forEach((agent) => {
                   Notification.create({
                     user: agent.userId._id,
@@ -193,7 +176,6 @@ const payForOnSiteVisit = (req, res) => {
                   });
                 });
 
-                // Répondre à l'admin
                 res.status(200).json({
                   success: true,
                   message: `Demande de visite créée gratuitement (admin). ${agents.length} agent(s) notifié(s).`,
@@ -205,14 +187,12 @@ const payForOnSiteVisit = (req, res) => {
       .catch((error) => res.status(500).json(error));
   }
 
-  // Vérifier que l'annonce existe
   Announcement.findById(announcementId)
     .then((announcement) => {
       if (!announcement) {
         return res.status(404).json({ message: "Annonce introuvable" });
       }
 
-      // Trouver le customer et son wallet
       Customer.findOne({ userId })
         .then((customer) => {
           if (!customer) {
@@ -225,7 +205,6 @@ const payForOnSiteVisit = (req, res) => {
                 return res.status(404).json({ message: "Wallet introuvable" });
               }
 
-              // Vérifier le solde
               if (wallet.balance < ON_SITE_VISIT_PRICE) {
                 return res.status(400).json({
                   message:
@@ -235,12 +214,10 @@ const payForOnSiteVisit = (req, res) => {
                 });
               }
 
-              // retirer l'argent necessaire du  wallet
               wallet.balance -= ON_SITE_VISIT_PRICE;
               wallet
                 .save()
                 .then(() => {
-                  //  Créer la transaction
                   const transaction = new WalletTransaction({
                     wallet: wallet._id,
                     serviceType: "visite sur site",
@@ -252,7 +229,6 @@ const payForOnSiteVisit = (req, res) => {
                   transaction
                     .save()
                     .then(() => {
-                      //  Créer la demande de visite avec status "en_attente"
                       const visit = new Visit({
                         userId: userId,
                         announcementId: announcementId,
@@ -263,21 +239,28 @@ const payForOnSiteVisit = (req, res) => {
                       visit
                         .save()
                         .then((savedVisit) => {
-                          // Récupérer UNIQUEMENT les agents assignés à cette annonce
+                          Notification.create({
+                            user: announcement.user,
+                            title: "Nouvelle demande de visite",
+                            message: `Une demande de visite sur site a été faite pour votre annonce "${announcement.title}". Un agent prendra en charge cette demande.`,
+                            action: "visite",
+                            announcement: announcement._id,
+                            emailSent: false,
+                          });
+
                           const assignedAgentIds =
                             announcement.assignedAgents || [];
 
                           if (assignedAgentIds.length === 0) {
                             return res.status(200).json({
                               message:
-                                "Demande envoyée. Aucun agent disponible pour cette annonce actuellement.",
+                                "Demande envoyée. Le propriétaire a été notifié. Aucun agent disponible pour cette annonce actuellement.",
                             });
                           }
 
                           Agent.find({ _id: { $in: assignedAgentIds } })
                             .populate("userId")
                             .then((agents) => {
-                              // Envoyer une notification uniquement aux agents assignés
                               agents.forEach((agent) => {
                                 Notification.create({
                                   user: agent.userId._id,
@@ -289,7 +272,6 @@ const payForOnSiteVisit = (req, res) => {
                                 });
                               });
 
-                              // Répondre au customer
                               res.status(200).json({
                                 message: `Demande envoyée. ${agents.length} agent(s) ont été notifiés. En attente de confirmation.`,
                               });
@@ -314,7 +296,6 @@ const payForCreateVirtualTour = (req, res) => {
   const userId = req.auth.userId;
   const userRole = req.auth.role;
 
-  // Admin : création gratuite
   if (userRole === "admin") {
     return Announcement.findOne({ _id: announcementId })
       .then((announcement) => {
@@ -324,7 +305,6 @@ const payForCreateVirtualTour = (req, res) => {
           });
         }
 
-        // La visite virtuelle sera créée par l'API externe
         return res.status(200).json({
           success: true,
           message:
@@ -375,8 +355,6 @@ const payForCreateVirtualTour = (req, res) => {
                   transaction
                     .save()
                     .then(() => {
-                      // La visite virtuelle sera créée par l'API externe
-                      // L'URL sera ajoutée à l'annonce plus tard
                       res.status(200).json({
                         message:
                           "Paiement effectué. Visite virtuelle disponible dans un instant",
@@ -400,7 +378,6 @@ const rechargeWallet = (req, res) => {
   const userId = req.auth.userId;
   const userRole = req.auth.role;
 
-  // Admin n'a pas de wallet
   if (userRole === "admin") {
     return res.status(403).json({
       success: false,
@@ -421,7 +398,6 @@ const rechargeWallet = (req, res) => {
             return res.status(404).json({ message: "Wallet introuvable" });
           }
 
-          // Créer l'entrée Payment (transaction wallet ↔ agrégateur)
           const payment = new Payment({
             wallet: wallet._id,
             actualAmount: Number(amount),
@@ -435,7 +411,6 @@ const rechargeWallet = (req, res) => {
           payment
             .save()
             .then((savedPayment) => {
-              // Créditer le wallet avec le montant payé
               wallet.balance += Number(amount);
               wallet
                 .save()
@@ -455,13 +430,10 @@ const rechargeWallet = (req, res) => {
     .catch((error) => res.status(500).json(error));
 };
 
-// CONSULTER LE SOLDE DU WALLET
-
 const getWalletBalance = (req, res) => {
   const userId = req.auth.userId;
   const userRole = req.auth.role;
 
-  // Admin n'a pas de wallet
   if (userRole === "admin") {
     return res.status(200).json({
       success: true,
@@ -492,13 +464,10 @@ const getWalletBalance = (req, res) => {
     .catch((error) => res.status(500).json(error));
 };
 
-// PAYER POUR PUBLIER UNE ANNONCE
-
 const payForPublishAnnouncement = (req, res) => {
   const userId = req.auth.userId;
   const userRole = req.auth.role;
 
-  // Admin : publication gratuite
   if (userRole === "admin") {
     return res.status(200).json({
       success: true,
@@ -530,12 +499,10 @@ const payForPublishAnnouncement = (req, res) => {
             });
           }
 
-          // Débiter le wallet
           wallet.balance -= PUBLISH_ANNOUNCEMENT_PRICE;
           wallet
             .save()
             .then(() => {
-              // Créer la transaction dans l'historique
               const transaction = new WalletTransaction({
                 wallet: wallet._id,
                 serviceType: "Publication d'annonce",
@@ -547,7 +514,6 @@ const payForPublishAnnouncement = (req, res) => {
               transaction
                 .save()
                 .then(() => {
-                  // Créer une notification
                   Notification.create({
                     user: userId,
                     title: "Paiement confirmé",

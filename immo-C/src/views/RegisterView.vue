@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
 
 const router = useRouter()
+const route = useRoute()
 
 const firstName = ref('')
 const lastName = ref('')
@@ -11,10 +12,19 @@ const email = ref('')
 const password = ref('')
 const phoneNumber = ref('')
 const whatsappNumber = ref('')
+const sponsorshipCode = ref('')
 const acceptTerms = ref(false)
 const errorMessage = ref('')
 const isLoading = ref(false)
 const showPassword = ref(false)
+
+// Récupérer le code de parrainage depuis l'URL
+onMounted(() => {
+  if (route.query.ref) {
+    sponsorshipCode.value = route.query.ref
+    console.log('Code de parrainage détecté:', sponsorshipCode.value)
+  }
+})
 
 const handleRegister = async () => {
   errorMessage.value = ''
@@ -27,14 +37,21 @@ const handleRegister = async () => {
   isLoading.value = true
 
   try {
-    const response = await authService.register({
+    const userData = {
       firstName: firstName.value,
       lastName: lastName.value,
       email: email.value,
       password: password.value,
       phoneNumber: phoneNumber.value,
       whatsappNumber: whatsappNumber.value || phoneNumber.value,
-    })
+    }
+
+    // Ajouter le code de parrainage s'il existe
+    if (sponsorshipCode.value) {
+      userData.sponsorshipCode = sponsorshipCode.value
+    }
+
+    const response = await authService.register(userData)
 
     if (response.success) {
       // Vider le formulaire
@@ -72,6 +89,11 @@ const handleRegister = async () => {
       <div class="card_right">
         <form @submit.prevent="handleRegister" class="form">
           <p class="form_title">S'inscrire</p>
+
+          <div v-if="sponsorshipCode" class="sponsorship_banner">
+            <i class="fas fa-user-friends"></i>
+            <span>Vous vous inscrivez via un lien de parrainage</span>
+          </div>
 
           <div v-if="errorMessage" class="error_message">
             {{ errorMessage }}
@@ -291,6 +313,25 @@ const handleRegister = async () => {
   text-align: center;
   font-size: 14px;
   border: 1px solid #fcc;
+}
+
+.sponsorship_banner {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #155724;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #c3e6cb;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.sponsorship_banner i {
+  font-size: 20px;
+  color: #28a745;
 }
 
 .form_button:disabled {

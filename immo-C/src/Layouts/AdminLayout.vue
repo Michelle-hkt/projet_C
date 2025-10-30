@@ -13,8 +13,9 @@ const loadUserInfo = () => {
 }
 
 const logout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('currentUser')
+  localStorage.removeItem('authToken')
+  localStorage.removeItem('user')
+  window.dispatchEvent(new Event('auth-changed'))
   router.push('/login')
 }
 
@@ -183,6 +184,14 @@ onMounted(() => {
   color: #fff;
 }
 
+.menu_item.router-link-active i {
+  color: #fff;
+}
+
+.menu_item.router-link-active span {
+  color: #fff;
+}
+
 .logout_btn {
   margin-top: 20px;
   border-top: 1px solid #e0e0e0;
@@ -243,5 +252,4 @@ onMounted(() => {
   }
 }
 </style>
-
 

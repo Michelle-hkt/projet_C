@@ -4,13 +4,13 @@ import { useAnnouncementStore } from '@/stores/announcementStore'
 import { usePropertyTypeStore } from '@/stores/propertyTypeStore'
 import AnnouncementBox from '@/components/AnnouncementBox.vue'
 import SectionTitle from '@/components/SectionTitle.vue'
-import { useLoader } from '@/composables/useLoader'
 
 const announcementStore = useAnnouncementStore()
 const propertyTypeStore = usePropertyTypeStore()
-const { showLoader, hideLoader } = useLoader()
 
 const announcements = ref([])
+const isLoading = ref(false)
+const isPageLoading = ref(true)
 const errorMessage = ref('')
 
 // Pagination
@@ -64,7 +64,7 @@ const loadPropertyTypes = async () => {
 }
 
 const loadAnnouncements = async () => {
-  showLoader()
+  isLoading.value = true
   errorMessage.value = ''
   currentPage.value = 1
 
@@ -76,12 +76,12 @@ const loadAnnouncements = async () => {
     errorMessage.value = 'Erreur lors du chargement des annonces'
     console.error('Erreur:', error)
   } finally {
-    hideLoader()
+    isLoading.value = false
   }
 }
 
 const searchAnnouncements = async () => {
-  showLoader()
+  isLoading.value = true
   errorMessage.value = ''
   currentPage.value = 1
 
@@ -98,7 +98,7 @@ const searchAnnouncements = async () => {
     errorMessage.value = 'Erreur lors de la recherche'
     console.error('Erreur:', error)
   } finally {
-    hideLoader()
+    isLoading.value = false
   }
 }
 
@@ -131,7 +131,7 @@ const handleScrollShadow = () => {
 }
 
 onMounted(async () => {
-  // loadAnnouncements() gère déjà le loader
+  isPageLoading.value = true
   try {
     await Promise.all([
       loadPropertyTypes(),
@@ -139,6 +139,8 @@ onMounted(async () => {
     ])
   } catch (error) {
     console.error('Erreur lors du chargement de la page:', error)
+  } finally {
+    isPageLoading.value = false
   }
   
   forceWhiteHeader()

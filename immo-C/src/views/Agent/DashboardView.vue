@@ -181,6 +181,10 @@ onMounted(() => {
   color: #fff;
 }
 
+.stat_icon i {
+  color: #fff;
+}
+
 .stat_icon.announcements {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
@@ -249,6 +253,10 @@ onMounted(() => {
   font-size: 48px;
   color: #28a745;
   margin-bottom: 15px;
+}
+
+.action_card:hover i {
+  color: #28a745;
 }
 
 .action_card h3 {

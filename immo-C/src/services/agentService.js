@@ -11,6 +11,11 @@ export const agentService = {
     return response.data
   },
 
+  async updateMyProfile(profileData) {
+    const response = await apiClient.put('/agent/profile', profileData)
+    return response.data
+  },
+
   async getMyWalletBalance() {
     const response = await apiClient.get('/agent/wallet')
     return response.data

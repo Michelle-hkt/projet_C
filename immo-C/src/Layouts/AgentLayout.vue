@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { agentService } from '@/services/agentService'
 
@@ -7,34 +7,57 @@ const router = useRouter()
 const user = ref(null)
 const walletBalance = ref(0)
 
-const loadUserInfo = () => {
-  const storedUser = localStorage.getItem('currentUser')
-  if (storedUser) {
-    user.value = JSON.parse(storedUser)
+const loadUserInfo = async () => {
+  try {
+
+    const response = await agentService.getMyProfile()
+    
+
+    const agentData = response.data || response
+    
+
+    user.value = {
+      ...agentData.user, // { firstName, lastName, email, ... }
+      ...agentData, // { id, phoneNumber, address, description, profileImage, cipImage, ... }
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement du profil:', error)
+
+    const storedUser = localStorage.getItem('currentUser')
+    if (storedUser) {
+      user.value = JSON.parse(storedUser)
+    }
   }
 }
 
 const loadWalletBalance = async () => {
   try {
     const response = await agentService.getMyWalletBalance()
-    walletBalance.value = response.balance || 0
+    walletBalance.value = response.data?.balance || response.balance || 0
   } catch (error) {
     console.error('Erreur lors du chargement du wallet:', error)
   }
 }
 
 const logout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('currentUser')
+  localStorage.removeItem('authToken')
+  localStorage.removeItem('user')
+  window.dispatchEvent(new Event('auth-changed'))
   router.push('/login')
 }
 
-onMounted(() => {
-  loadUserInfo()
-  loadWalletBalance()
+onMounted(async () => {
+  await loadUserInfo()
+  await loadWalletBalance()
   
-  // Écouter les événements de mise à jour du wallet
+
   window.addEventListener('wallet-updated', loadWalletBalance)
+  window.addEventListener('agent-profile-updated', loadUserInfo)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('wallet-updated', loadWalletBalance)
+  window.removeEventListener('agent-profile-updated', loadUserInfo)
 })
 </script>
 
@@ -47,14 +70,15 @@ onMounted(() => {
         </div>
         <div class="user_info">
           <div class="user_avatar">
-            <i class="fas fa-user-tie"></i>
+            <img 
+              v-if="user?.profileImage" 
+              :src="user.profileImage" 
+              :alt="`${user.firstName} ${user.lastName}`"
+            />
+            <i v-else class="fas fa-user-tie"></i>
           </div>
           <h3>{{ user?.firstName }} {{ user?.lastName }}</h3>
-          <p class="user_role">Agent Immobilier</p>
-          <div class="wallet_badge">
-            <i class="fas fa-wallet"></i>
-            <span>{{ walletBalance.toLocaleString() }} immo</span>
-          </div>
+          <p class="user_role">Agent</p>
         </div>
       </div>
 
@@ -87,6 +111,10 @@ onMounted(() => {
         <RouterLink to="/agent/sponsored-customers" class="menu_item">
           <i class="fas fa-users"></i>
           <span>Clients Parrainés</span>
+        </RouterLink>
+        <RouterLink to="/agent/notifications" class="menu_item">
+          <i class="fas fa-bell"></i>
+          <span>Notifications</span>
         </RouterLink>
         <button @click="logout" class="menu_item logout_btn">
           <i class="fas fa-sign-out-alt"></i>
@@ -144,6 +172,13 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.user_avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user_avatar i {
@@ -155,7 +190,7 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
 }
 
 .user_role {
@@ -165,7 +200,6 @@ onMounted(() => {
   padding: 4px 12px;
   border-radius: 12px;
   display: inline-block;
-  margin-bottom: 10px;
 }
 
 .wallet_badge {
@@ -178,10 +212,16 @@ onMounted(() => {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
+  margin-top: 5px;
 }
 
 .wallet_badge i {
   font-size: 16px;
+  color: #fff;
+}
+
+.wallet_badge span {
+  color: #fff;
 }
 
 .sidebar_menu {
@@ -231,6 +271,14 @@ onMounted(() => {
   color: #fff;
 }
 
+.menu_item.router-link-active i {
+  color: #fff;
+}
+
+.menu_item.router-link-active span {
+  color: #fff;
+}
+
 .logout_btn {
   margin-top: 20px;
   border-top: 1px solid #e0e0e0;
@@ -270,6 +318,12 @@ onMounted(() => {
     height: 50px;
   }
 
+  .user_avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
   .user_avatar i {
     font-size: 24px;
   }
@@ -292,5 +346,4 @@ onMounted(() => {
   }
 }
 </style>
-
 

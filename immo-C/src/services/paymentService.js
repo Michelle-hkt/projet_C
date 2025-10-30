@@ -1,16 +1,9 @@
 import apiClient from './api'
 
-/**
- * Service de gestion des paiements et du wallet
- */
 export const paymentService = {
-  /**
-   * Récupère le solde du wallet de l'utilisateur connecté
-   * @returns {Promise} - Balance du wallet
-   */
   getWalletBalance() {
     return apiClient
-      .get('/wallet/balance')
+      .get('/payment/wallet')
       .then((response) => response.data)
       .catch((error) => {
         console.error('Erreur lors de la récupération du solde:', error)
@@ -18,19 +11,12 @@ export const paymentService = {
       })
   },
 
-  /**
-   * Recharge le wallet via un agrégateur de paiement
-   * @param {number} amount - Montant à créditer dans le wallet (en FCFA)
-   * @param {string} paymentMethod - Méthode de paiement (Orange Money, MTN, Wave)
-   * @param {number} price - Montant réellement payé (en FCFA)
-   * @returns {Promise} - Détails de la transaction
-   */
   rechargeWallet(amount, paymentMethod, price) {
     return apiClient
-      .post('/payments/recharge', {
+      .post('/payment/wallet/recharge', {
         amount,
         paymentMethod,
-        price,
+        amountPaid: price,
       })
       .then((response) => response.data)
       .catch((error) => {
@@ -39,13 +25,9 @@ export const paymentService = {
       })
   },
 
-  /**
-   * Récupère l'historique des transactions du wallet
-   * @returns {Promise} - Liste des transactions
-   */
   getTransactionHistory() {
     return apiClient
-      .get('/wallet/transactions')
+      .get('/wallet-transactions')
       .then((response) => response.data)
       .catch((error) => {
         console.error("Erreur lors de la récupération de l'historique:", error)
@@ -53,16 +35,52 @@ export const paymentService = {
       })
   },
 
-  /**
-   * Récupère l'historique des paiements (recharges uniquement)
-   * @returns {Promise} - Liste des paiements
-   */
   getPaymentHistory() {
     return apiClient
-      .get('/payments/history')
+      .get('/payment/history')
       .then((response) => response.data)
       .catch((error) => {
         console.error("Erreur lors de la récupération de l'historique des paiements:", error)
+        throw error
+      })
+  },
+
+  payForOnSiteVisit(announcementId) {
+    return apiClient
+      .post('/payment/on-site-visit', { announcementId })
+      .then((response) => response.data)
+      .catch((error) => {
+        console.error('Erreur lors du paiement de la visite sur site:', error)
+        throw error
+      })
+  },
+
+  payForVirtualVisit(announcementId) {
+    return apiClient
+      .post('/payment/virtual-visit', { announcementId })
+      .then((response) => response.data)
+      .catch((error) => {
+        console.error('Erreur lors du paiement de la visite virtuelle:', error)
+        throw error
+      })
+  },
+
+  payForCreateVirtualTour(announcementId) {
+    return apiClient
+      .post('/payment/create-virtual-tour', { announcementId })
+      .then((response) => response.data)
+      .catch((error) => {
+        console.error('Erreur lors de la création de la visite virtuelle:', error)
+        throw error
+      })
+  },
+
+  payForPublishAnnouncement(announcementId) {
+    return apiClient
+      .post('/payment/publish-announcement', { announcementId })
+      .then((response) => response.data)
+      .catch((error) => {
+        console.error('Erreur lors du paiement de la publication:', error)
         throw error
       })
   },

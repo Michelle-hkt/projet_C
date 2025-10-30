@@ -19,6 +19,8 @@ agentRouter.post(
 
 agentRouter.get("/profile", auth, isAgent, agentController.getMyProfile);
 
+agentRouter.put("/profile", auth, isAgent, agentController.updateMyProfile);
+
 agentRouter.get("/all", auth, isAdmin, agentController.getAllAgents);
 
 agentRouter.get("/pending", auth, isAdmin, agentController.getPendingAgents);

@@ -26,14 +26,12 @@ export const registerValidation = joi.object({
   password: joi
     .string()
     .pattern(
-      new RegExp(
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[\\W_])[A-Za-z\\d\\W_]{8,30}$"
-      )
+      new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[\\W_])[A-Za-z\\d\\W_]{8,30}$")
     )
     .required()
     .messages({
       "string.pattern.base":
-        "Mot de passe d'au moins 8 caractères contenant au moins une minuscule, une majuscule, un chiffre et un caractère spécial",
+        "Le mot de passe doit contenir au moins 8 caractères, une minuscule, une majuscule et un caractère spécial (@, #, $, etc.)",
       "string.empty": "Le mot de passe est obligatoire",
       "string.min": "Le mot de passe doit contenir au moins 8 caractères",
     }),
@@ -44,6 +42,8 @@ export const registerValidation = joi.object({
   }),
 
   whatsappNumber: joi.string().min(8).optional().allow(""),
+
+  sponsorshipCode: joi.string().optional().allow(""),
 });
 
 export const loginValidation = joi.object({
@@ -59,12 +59,12 @@ export const loginValidation = joi.object({
   password: joi
     .string()
     .pattern(
-      new RegExp(
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[\\W_])[A-Za-z\\d\\W_]{8,30}$"
-      )
+      new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[\\W_])[A-Za-z\\d\\W_]{8,30}$")
     )
     .required()
     .messages({
       "string.empty": "Le mot de passe est obligatoire",
+      "string.pattern.base":
+        "Le mot de passe doit contenir au moins 8 caractères, une minuscule, une majuscule et un caractère spécial (@, #, $, etc.)",
     }),
 });

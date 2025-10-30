@@ -28,14 +28,14 @@ const loadWallet = async () => {
 
 const handleLogout = async () => {
   await authService.logout()
-  // Émettre un événement personnalisé pour informer le header
+
   window.dispatchEvent(new Event('auth-changed'))
   router.push('/home')
 }
 
 onMounted(() => {
   loadWallet()
-  // Écouter un événement personnalisé pour recharger le wallet
+
   window.addEventListener('wallet-updated', loadWallet)
 })
 </script>

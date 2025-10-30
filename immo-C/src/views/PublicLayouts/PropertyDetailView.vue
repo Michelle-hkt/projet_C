@@ -14,6 +14,7 @@ const errorMessage = ref('')
 const currentImageIndex = ref(0)
 const showRequestModal = ref(false)
 const showVirtualTourModal = ref(false)
+const requestSuccess = ref(false)
 
 const loadAnnouncement = async () => {
   isLoading.value = true
@@ -60,27 +61,45 @@ const requestVirtualTour = () => {
 
 const confirmRequestVisit = async () => {
   try {
-    // Appel API pour demander une visite sur site
     await paymentService.payForOnSiteVisit(announcement.value._id)
-    alert('Demande de visite envoyée avec succès ! Un agent vous contactera bientôt.')
-    showRequestModal.value = false
+    
+
+    requestSuccess.value = true
+    
+
+    setTimeout(() => {
+      showRequestModal.value = false
+      requestSuccess.value = false
+    }, 2000)
   } catch (error) {
+    console.error('Erreur lors de la demande de visite:', error)
     alert('Erreur lors de la demande de visite: ' + (error.response?.data?.message || error.message))
   }
 }
 
 const confirmVirtualTour = async () => {
   try {
-    // Appel API pour accéder à la visite virtuelle
+
     const response = await paymentService.payForVirtualVisit(announcement.value._id)
-    alert('Accès à la visite virtuelle accordé !')
     
-    // Ouvrir l'URL de la visite virtuelle dans un nouvel onglet
-    if (response.visitUrl && response.visitUrl !== 'N/A') {
-      window.open(response.visitUrl, '_blank')
-    }
+
+    const visitUrl = response.visitUrl || response.data?.visitUrl
     
     showVirtualTourModal.value = false
+    
+    if (visitUrl && visitUrl !== 'N/A') {
+
+      successMessage.value = 'Accès à la visite virtuelle accordé ! Redirection en cours...'
+      showSuccessToast.value = true
+      
+
+      setTimeout(() => {
+        window.open(visitUrl, '_blank')
+        showSuccessToast.value = false
+      }, 2000)
+    } else {
+      alert('URL de visite virtuelle non disponible')
+    }
   } catch (error) {
     alert('Erreur lors de l\'accès à la visite virtuelle: ' + (error.response?.data?.message || error.message))
   }
@@ -90,7 +109,6 @@ const goBack = () => {
   router.back()
 }
 
-// Forcer le header blanc avec texte noir sur cette page
 const applyHeaderStyle = () => {
   const header = document.querySelector('.header')
   if (header) {
@@ -98,7 +116,6 @@ const applyHeaderStyle = () => {
   }
 }
 
-// Gérer la box-shadow au scroll (sans changer la couleur)
 const handleScrollShadow = () => {
   const header = document.querySelector('.header')
   if (header) {
@@ -121,7 +138,7 @@ onUnmounted(() => {
   if (header) {
     header.classList.remove('force-white-announcements', 'with-shadow')
   }
-  // Retirer l'écouteur de scroll
+
   window.removeEventListener('scroll', handleScrollShadow)
 })
 </script>
@@ -286,14 +303,20 @@ onUnmounted(() => {
               Demander une visite
             </button>
             
-            <button class="action_btn secondary" @click="requestVirtualTour">
+            <button 
+              v-if="announcement.virtualTour?.visitUrl && announcement.virtualTour.visitUrl !== 'N/A'"
+              class="action_btn secondary" 
+              @click="requestVirtualTour"
+            >
               <i class="fas fa-vr-cardboard"></i>
               Faire la visite virtuelle
             </button>
 
             <div class="action_info">
               <p><i class="fas fa-info-circle"></i> La visite sur site coûte <strong>1000 immo</strong></p>
-              <p><i class="fas fa-info-circle"></i> La visite virtuelle coûte <strong>1500 immo</strong></p>
+              <p v-if="announcement.virtualTour?.visitUrl && announcement.virtualTour.visitUrl !== 'N/A'">
+                <i class="fas fa-info-circle"></i> La visite virtuelle coûte <strong>1500 immo</strong>
+              </p>
             </div>
           </div>
 
@@ -323,13 +346,24 @@ onUnmounted(() => {
     <div v-if="showRequestModal" class="modal_overlay" @click="showRequestModal = false">
       <div class="modal_content" @click.stop>
         <button class="modal_close" @click="showRequestModal = false">×</button>
-        <h2>Demander une visite sur site</h2>
-        <p>Vous allez réserver une visite sur site pour cette propriété.</p>
-        <p class="modal_price"><strong>Coût:</strong> 1000 immo</p>
-        <p class="modal_info">Un agent vous contactera pour convenir d'un rendez-vous.</p>
-        <div class="modal_actions">
-          <button class="btn_cancel" @click="showRequestModal = false">Annuler</button>
-          <button class="btn_confirm" @click="confirmRequestVisit">Confirmer</button>
+        
+        <!-- Message de succès -->
+        <div v-if="requestSuccess" class="success_message">
+          <i class="fas fa-check-circle"></i>
+          <h2>Demande envoyée !</h2>
+          <p>Un agent vous contactera bientôt.</p>
+        </div>
+        
+        <!-- Formulaire de confirmation -->
+        <div v-else>
+          <h2>Demander une visite sur site</h2>
+          <p>Vous allez réserver une visite sur site pour cette propriété.</p>
+          <p class="modal_price"><strong>Coût:</strong> 1000 immo</p>
+          <p class="modal_info">Un agent vous contactera pour convenir d'un rendez-vous.</p>
+          <div class="modal_actions">
+            <button class="btn_cancel" @click="showRequestModal = false">Annuler</button>
+            <button class="btn_confirm" @click="confirmRequestVisit">Confirmer</button>
+          </div>
         </div>
       </div>
     </div>
@@ -871,6 +905,29 @@ onUnmounted(() => {
 
 .btn_confirm:hover {
   background-color: #1d3a8f;
+}
+
+/* Message de succès dans le modal */
+.success_message {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.success_message i {
+  font-size: 60px;
+  color: #28a745;
+  margin-bottom: 15px;
+}
+
+.success_message h2 {
+  font-size: 24px;
+  color: #28a745;
+  margin-bottom: 10px;
+}
+
+.success_message p {
+  font-size: 16px;
+  color: #666;
 }
 
 /* Responsive */

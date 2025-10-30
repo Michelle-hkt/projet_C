@@ -47,9 +47,55 @@ const getMyProfile = (req, res) => {
           id: agent._id,
           user: agent.userId,
           phoneNumber: agent.phoneNumber,
+          address: agent.address,
+          description: agent.description,
+          profileImage: agent.profileImage,
+          cipImage: agent.cipImage,
           isValide: agent.isValide,
+          sponsorshipCode: agent.sponsorshipCode,
           createdAt: agent.createdAt,
           updatedAt: agent.updatedAt,
+        },
+      });
+    })
+    .catch((error) =>
+      res.status(500).json({ success: false, message: error.message })
+    );
+};
+
+const updateMyProfile = (req, res) => {
+  const userId = req.auth.userId;
+  const { phoneNumber, address, description, profileImage, cipImage } =
+    req.body;
+
+  Agent.findOne({ userId })
+    .then((agent) => {
+      if (!agent) {
+        return res.status(404).json({
+          success: false,
+          message: "Profil agent introuvable",
+        });
+      }
+
+      if (phoneNumber) agent.phoneNumber = phoneNumber;
+      if (address) agent.address = address;
+      if (description) agent.description = description;
+      if (profileImage) agent.profileImage = profileImage;
+      if (cipImage) agent.cipImage = cipImage;
+
+      return agent.save();
+    })
+    .then((updatedAgent) => {
+      res.status(200).json({
+        success: true,
+        message: "Profil mis à jour avec succès",
+        data: {
+          id: updatedAgent._id,
+          phoneNumber: updatedAgent.phoneNumber,
+          address: updatedAgent.address,
+          description: updatedAgent.description,
+          profileImage: updatedAgent.profileImage,
+          cipImage: updatedAgent.cipImage,
         },
       });
     })
@@ -190,7 +236,6 @@ const getValidatedAgents = (req, res) => {
     );
 };
 
-// CONSULTER LE SOLDE DU WALLET AGENT
 const getMyWalletBalance = (req, res) => {
   const userId = req.auth.userId;
 
@@ -218,7 +263,6 @@ const getMyWalletBalance = (req, res) => {
     );
 };
 
-// DEMANDER UN RETRAIT VIA L'AGRÉGATEUR
 const requestWithdrawal = (req, res) => {
   const userId = req.auth.userId;
   const { amount, paymentMethod, phoneNumber } = req.body;
@@ -236,7 +280,6 @@ const requestWithdrawal = (req, res) => {
 
       const wallet = agent.walletId;
 
-      // Vérifier le solde
       if (wallet.balance < amount) {
         return res.status(400).json({
           success: false,
@@ -246,7 +289,6 @@ const requestWithdrawal = (req, res) => {
         });
       }
 
-      // Vérifier montant minimum de retrait (par exemple 1000 immo)
       if (amount < 1000) {
         return res.status(400).json({
           success: false,
@@ -254,13 +296,12 @@ const requestWithdrawal = (req, res) => {
         });
       }
 
-      // Débiter le wallet
       wallet.balance -= amount;
 
       wallet
         .save()
         .then(() => {
-          // Créer l'entrée Payment (transaction wallet ↔ agrégateur)
+
           const payment = new Payment({
             wallet: wallet._id,
             actualAmount: Number(amount),
@@ -274,7 +315,7 @@ const requestWithdrawal = (req, res) => {
           payment
             .save()
             .then((savedPayment) => {
-              // Créer une notification
+
               Notification.create({
                 user: userId,
                 title: "Demande de retrait enregistrée",
@@ -308,7 +349,6 @@ const requestWithdrawal = (req, res) => {
     );
 };
 
-// CONSULTER LES ANNONCES ASSIGNÉES À L'AGENT
 const getMyAssignedAnnouncements = (req, res) => {
   const userId = req.auth.userId;
 
@@ -318,7 +358,6 @@ const getMyAssignedAnnouncements = (req, res) => {
         return res.status(404).json({ message: "Agent introuvable" });
       }
 
-      // Trouver toutes les annonces où cet agent est dans assignedAgents
       Announcement.find({ assignedAgents: agent._id })
         .populate("user", "firstName lastName email")
         .populate("propertyType", "name")
@@ -343,7 +382,6 @@ const getMyAssignedAnnouncements = (req, res) => {
     );
 };
 
-// GÉNÉRER LE LIEN DE PARRAINAGE DE L'AGENT
 const generateSponsorshipLink = (req, res) => {
   const userId = req.auth.userId;
 
@@ -368,7 +406,6 @@ const generateSponsorshipLink = (req, res) => {
         });
       }
 
-      // Générer le lien (à adapter selon l'URL du frontend)
       const sponsorshipLink = `${
         process.env.FRONTEND_URL || "http://localhost:5173"
       }/register?ref=${agent.sponsorshipCode}`;
@@ -387,7 +424,6 @@ const generateSponsorshipLink = (req, res) => {
     );
 };
 
-// CONSULTER LES CLIENTS PARRAINÉS PAR L'AGENT
 const getMySponsoredCustomers = (req, res) => {
   const userId = req.auth.userId;
 
@@ -397,7 +433,6 @@ const getMySponsoredCustomers = (req, res) => {
         return res.status(404).json({ message: "Agent introuvable" });
       }
 
-      // Trouver tous les customers qui ont cet agent comme sponsoredBy
       Customer.find({ sponsoredBy: agent._id })
         .populate("userId", "firstName lastName email createdAt")
         .sort({ createdAt: -1 })
@@ -427,7 +462,6 @@ const getMySponsoredCustomers = (req, res) => {
     );
 };
 
-// CONSULTER L'HISTORIQUE DES COMMISSIONS DE L'AGENT
 const getMyCommissions = (req, res) => {
   const userId = req.auth.userId;
 
@@ -441,7 +475,6 @@ const getMyCommissions = (req, res) => {
         return res.status(404).json({ message: "Wallet introuvable" });
       }
 
-      // Récupérer toutes les transactions de type "deposit" liées aux commissions
       WalletTransaction.find({
         wallet: agent.walletId,
         transactionType: "deposit",
@@ -455,7 +488,7 @@ const getMyCommissions = (req, res) => {
       })
         .sort({ createdAt: -1 })
         .then((transactions) => {
-          // Calculer le total des commissions
+
           const totalCommissions = transactions.reduce(
             (sum, t) => sum + t.amount,
             0
@@ -480,6 +513,7 @@ const getMyCommissions = (req, res) => {
 export default {
   registerAgent,
   getMyProfile,
+  updateMyProfile,
   validateAgent,
   rejectAgent,
   invalidateAgent,

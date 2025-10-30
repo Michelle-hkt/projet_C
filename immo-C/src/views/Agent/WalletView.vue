@@ -40,7 +40,7 @@ const handleWithdrawal = async () => {
     setTimeout(() => (successMessage.value = ''), 3000)
     withdrawAmount.value = 1000
     loadWallet()
-    // Émettre un événement pour mettre à jour le wallet dans le layout
+
     window.dispatchEvent(new Event('wallet-updated'))
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'Erreur lors de la demande de retrait'
@@ -97,11 +97,6 @@ onMounted(() => {
           <i class="fas fa-money-bill-wave"></i>
           Demander le retrait
         </button>
-
-        <div class="info_box">
-          <i class="fas fa-info-circle"></i>
-          <p>Les demandes de retrait sont traitées sous 48h. Vous recevrez une notification une fois le retrait effectué.</p>
-        </div>
       </div>
     </div>
   </div>
@@ -257,6 +252,10 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.btn_withdraw i {
+  color: #fff;
+}
+
 .btn_withdraw:hover:not(:disabled) {
   background-color: #218838;
   transform: translateY(-2px);
@@ -267,28 +266,5 @@ onMounted(() => {
   cursor: not-allowed;
   transform: none;
 }
-
-.info_box {
-  background-color: #e7f3ff;
-  padding: 15px;
-  border-radius: 8px;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.info_box i {
-  font-size: 20px;
-  color: #274abb;
-  margin-top: 2px;
-}
-
-.info_box p {
-  font-size: 13px;
-  color: #555;
-  line-height: 1.6;
-  margin: 0;
-}
 </style>
-
 

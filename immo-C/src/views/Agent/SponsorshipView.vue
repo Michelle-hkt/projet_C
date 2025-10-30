@@ -10,7 +10,7 @@ const loadSponsorshipLink = async () => {
   isLoading.value = true
   try {
     const response = await agentService.generateSponsorshipLink()
-    sponsorshipData.value = response
+    sponsorshipData.value = response.data || response
   } catch (error) {
     console.error('Erreur lors du chargement du lien de parrainage:', error)
   } finally {
@@ -46,17 +46,20 @@ onMounted(() => {
 
     <div v-else-if="sponsorshipData" class="sponsorship_content">
       <div class="link_card">
-        <h2>Votre lien de parrainage</h2>
-        <div class="link_display">
-          <input 
-            :value="sponsorshipData.sponsorshipLink" 
-            readonly 
-            class="link_input"
-          />
-          <button @click="copyToClipboard" class="btn_copy">
-            <i :class="copied ? 'fas fa-check' : 'fas fa-copy'"></i>
-            {{ copied ? 'Copié !' : 'Copier' }}
-          </button>
+        <div class="form_group">
+          <label for="sponsorshipLink">Votre lien de parrainage</label>
+          <div class="link_display">
+            <input 
+              id="sponsorshipLink"
+              :value="sponsorshipData.sponsorshipLink" 
+              readonly 
+              class="link_input"
+            />
+            <button @click="copyToClipboard" class="btn_copy">
+              <i :class="copied ? 'fas fa-check' : 'fas fa-copy'"></i>
+              {{ copied ? 'Copié !' : 'Copier' }}
+            </button>
+          </div>
         </div>
         
         <div class="code_display">
@@ -174,10 +177,21 @@ h2 {
   margin-bottom: 20px;
 }
 
+.form_group {
+  margin-bottom: 25px;
+}
+
+.form_group label {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
 .link_display {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
 }
 
 .link_input {
@@ -203,6 +217,10 @@ h2 {
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+}
+
+.btn_copy i {
+  color: #fff;
 }
 
 .btn_copy:hover {
@@ -313,6 +331,10 @@ h2 {
   justify-content: center;
   gap: 10px;
   transition: transform 0.3s;
+}
+
+.btn_view_customers i {
+  color: #fff;
 }
 
 .btn_view_customers:hover {

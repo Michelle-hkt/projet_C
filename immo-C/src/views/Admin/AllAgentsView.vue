@@ -1,18 +1,51 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { agentService } from '@/services/agentService'
 
+const route = useRoute()
 const agents = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const successMessage = ref('')
+
+// Détermine le type de filtre selon la route
+const filterType = computed(() => {
+  if (route.path.includes('/agents/pending')) return 'pending'
+  if (route.path.includes('/agents/validated')) return 'validated'
+  return 'all'
+})
+
+// Titre de la page selon le filtre
+const pageTitle = computed(() => {
+  if (filterType.value === 'pending') return 'Agents en attente'
+  if (filterType.value === 'validated') return 'Agents validés'
+  return 'Tous les agents'
+})
+
+// Description de la page
+const pageDescription = computed(() => {
+  if (filterType.value === 'pending') return 'Valider les nouvelles demandes d\'inscription'
+  if (filterType.value === 'validated') return 'Gérer les agents actifs de la plateforme'
+  return 'Gérer tous les agents de la plateforme'
+})
 
 const loadAgents = async () => {
   isLoading.value = true
   errorMessage.value = ''
   
   try {
-    const response = await agentService.getAllAgents()
+    let response
+    
+    // Appeler le bon service selon le filtre
+    if (filterType.value === 'pending') {
+      response = await agentService.getPendingAgents()
+    } else if (filterType.value === 'validated') {
+      response = await agentService.getValidatedAgents()
+    } else {
+      response = await agentService.getAllAgents()
+    }
+    
     agents.value = response.data || []
   } catch (error) {
     errorMessage.value = 'Erreur lors du chargement des agents'
@@ -21,6 +54,11 @@ const loadAgents = async () => {
     isLoading.value = false
   }
 }
+
+// Recharger quand la route change
+watch(() => route.path, () => {
+  loadAgents()
+})
 
 const handleValidate = async (agentId) => {
   if (!confirm('Voulez-vous vraiment valider cet agent ?')) return
@@ -72,8 +110,14 @@ onMounted(() => {
 <template>
   <div class="agents_view">
     <div class="page_header">
-      <h1>Tous les agents</h1>
-      <p>Gérer tous les agents de la plateforme</p>
+      <h1>{{ pageTitle }}</h1>
+      <p>{{ pageDescription }}</p>
+    </div>
+
+    <!-- Statistiques -->
+    <div v-if="!isLoading && agents.length > 0" class="stats_badge">
+      <i class="fas fa-users"></i>
+      <span>{{ agents.length }} agent(s) {{ filterType === 'pending' ? 'en attente' : filterType === 'validated' ? 'validé(s)' : 'au total' }}</span>
     </div>
 
     <div v-if="successMessage" class="alert success">{{ successMessage }}</div>
@@ -83,7 +127,7 @@ onMounted(() => {
 
     <div v-else-if="agents.length === 0" class="empty_message">
       <i class="fas fa-users"></i>
-      <p>Aucun agent trouvé</p>
+      <p>Aucun agent trouvé dans cette catégorie</p>
     </div>
 
     <div v-else class="agents_grid">
@@ -162,6 +206,28 @@ onMounted(() => {
 .page_header p {
   font-size: 14px;
   color: #666;
+}
+
+.stats_badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #274abb;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.stats_badge i {
+  font-size: 16px;
+  color: #fff;
+}
+
+.stats_badge span {
+  color: #fff;
 }
 
 .alert {
@@ -248,6 +314,10 @@ onMounted(() => {
   color: #fff;
 }
 
+.agent_avatar i {
+  color: #fff;
+}
+
 .agent_info {
   flex: 1;
 }
@@ -327,6 +397,10 @@ onMounted(() => {
   color: #fff;
 }
 
+.btn_validate i {
+  color: #fff;
+}
+
 .btn_validate:hover {
   background-color: #218838;
 }
@@ -336,12 +410,20 @@ onMounted(() => {
   color: #fff;
 }
 
+.btn_invalidate i {
+  color: #fff;
+}
+
 .btn_invalidate:hover {
   background-color: #e0a800;
 }
 
 .btn_reject {
   background-color: #dc3545;
+  color: #fff;
+}
+
+.btn_reject i {
   color: #fff;
 }
 
